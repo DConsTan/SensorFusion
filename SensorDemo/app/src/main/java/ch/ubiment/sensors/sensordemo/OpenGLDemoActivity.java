@@ -46,6 +46,12 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener{
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        sensorManager.unregisterListener(this);
+    }
+
+    @Override
     public void onSensorChanged(SensorEvent event) {
         //get rotation matrix from rotation vector
         float[] rotationMatrix = new float[16];
