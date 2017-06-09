@@ -3,7 +3,9 @@
     package="ch.ubiment.sensors.sensordemo">
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.sensor.magnetometer" android:required="true" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true" />
     <uses-feature android:name="android.hardware.sensor.gravity" android:required="true" />
+    <uses-feature android:name="android.hardware.sensor.GYROSCOPE" android:required="true" />
     <uses-permission android:name="android.permission.INTERNET" android:required="true" />
     <uses-permission android:name="android.hardware.wifi" android:required="true" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" android:required="true" />
