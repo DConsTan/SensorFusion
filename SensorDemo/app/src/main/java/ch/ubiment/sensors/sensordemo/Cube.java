@@ -16,25 +16,28 @@ class Cube {
     private FloatBuffer mColorBuffer;
     private ByteBuffer  mIndexBuffer;
 
+
+    private float a = -0.25f;
+    private float b =  0.25f;
     private float vertices[] = {
-            -1.0f, -1.0f, -1.0f,
-            1.0f, -1.0f, -1.0f,
-            1.0f,  1.0f, -1.0f,
-            -1.0f, 1.0f, -1.0f,
-            -1.0f, -1.0f,  1.0f,
-            1.0f, -1.0f,  1.0f,
-            1.0f,  1.0f,  1.0f,
-            -1.0f,  1.0f,  1.0f
+            a, a, a,
+            b, a, a,
+            b, b, a,
+            a, b, a,
+            a, a, b,
+            b, a, b,
+            b, b, b,
+            a, b, b
     };
     private float colors[] = {
-            0.0f,  1.0f,  0.0f,  0.5f,
-            0.0f,  1.0f,  0.0f,  1.0f,
-            1.0f,  0.5f,  0.0f,  1.0f,
-            1.0f,  0.5f,  0.0f,  1.0f,
-            1.0f,  0.0f,  0.0f,  1.0f,
-            1.0f,  0.0f,  0.0f,  1.0f,
-            0.0f,  0.0f,  1.0f,  1.0f,
-            1.0f,  0.0f,  1.0f,  1.0f
+            0.0f, 0.0f, 0.0f, 0.5f,
+            1.0f, 0.0f, 0.0f, 0.5f,
+            1.0f, 1.0f, 0.0f, 0.5f,
+            0.0f, 1.0f, 0.0f, 0.5f,
+            0.0f, 0.0f, 1.0f, 0.5f,
+            1.0f, 0.0f, 1.0f, 0.5f,
+            1.0f, 1.0f, 1.0f, 0.5f,
+            0.0f, 1.0f, 1.0f, 0.5f
     };
 
     private byte indices[] = {
@@ -45,6 +48,7 @@ class Cube {
             4, 7, 6, 4, 6, 5,
             3, 0, 1, 3, 1, 2
     };
+
 
     public Cube() {
         ByteBuffer byteBuf = ByteBuffer.allocateDirect(vertices.length * 4);
@@ -62,6 +66,35 @@ class Cube {
         mIndexBuffer = ByteBuffer.allocateDirect(indices.length);
         mIndexBuffer.put(indices);
         mIndexBuffer.position(0);
+    }
+
+    public Cube(float r, float g, float b, float a) {
+        ByteBuffer byteBuf = ByteBuffer.allocateDirect(vertices.length * 4);
+        byteBuf.order(ByteOrder.nativeOrder());
+        mVertexBuffer = byteBuf.asFloatBuffer();
+        mVertexBuffer.put(vertices);
+        mVertexBuffer.position(0);
+
+        setColor(r,g,b,a);
+
+        byteBuf = ByteBuffer.allocateDirect(colors.length * 4);
+        byteBuf.order(ByteOrder.nativeOrder());
+        mColorBuffer = byteBuf.asFloatBuffer();
+        mColorBuffer.put(colors);
+        mColorBuffer.position(0);
+
+        mIndexBuffer = ByteBuffer.allocateDirect(indices.length);
+        mIndexBuffer.put(indices);
+        mIndexBuffer.position(0);
+
+    }
+
+    public void setColor(float r, float g, float b, float a){
+        for (int i = 0; i < 32; i+=4) {
+            colors[i] = colors[i] * (1-a) + a*r;
+            colors[i+1] = colors[i+1] * (1-a) + a*g;
+            colors[i+2] = colors[i+2] * (1-a) + a*b;
+        }
     }
 
     public void draw(GL10 gl) {

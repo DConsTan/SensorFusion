@@ -11,18 +11,29 @@ import javax.microedition.khronos.opengles.GL10;
  */
 
 class OpenGLRenderer implements GLSurfaceView.Renderer {
+    private Scene scene;
 
-    private Cube mCube = new Cube();
-    private float[] rotationMatrix = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+    private float[] rotationMatrix_Gyro = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    private float[] rotationMatrix_Magn = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
 
-    public void setRotationMatrix(float[] rotationMatrix) {
-       this.rotationMatrix = rotationMatrix;
+    public void setRotationMatrix_Gyro(float[] rotationMatrix) {
+        this.rotationMatrix_Gyro = rotationMatrix;
     }
+
+    public void setRotationMatrix_Magn(float[] rotationMatrix) {
+        this.rotationMatrix_Magn = rotationMatrix;
+    }
+
+
+    public OpenGLRenderer(Scene scene){
+        this.scene = scene;
+    }
+
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 
-        gl.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+        gl.glClearColor(0.2f, 0.2f, 0.2f, 0.5f);
 
         gl.glClearDepthf(1.0f);
         gl.glEnable(GL10.GL_DEPTH_TEST);
@@ -39,12 +50,23 @@ class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glLoadIdentity();
 
         gl.glTranslatef(0.0f, 0.0f, -10.0f);
-        gl.glMultMatrixf(rotationMatrix,0);
-        mCube.draw(gl);
+        for (Line vector: scene.getVectorList()) {
+            vector.draw(gl);
+        }
+
+
+        gl.glMultMatrixf(rotationMatrix_Gyro, 0);
+        scene.getmCube_G().draw(gl);
+        scene.getmAxis().draw(gl);
+
+        gl.glLoadIdentity();
+        gl.glTranslatef(0.0f, 0.0f, -10.0f);
+        gl.glMultMatrixf(rotationMatrix_Magn, 0);
+        //scene.getmCube_M().draw(gl);
+        scene.getmAxis().draw(gl);
 
         gl.glLoadIdentity();
 
-        //mCubeRotation -= 0.15f;
     }
 
     @Override
@@ -58,4 +80,5 @@ class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         gl.glLoadIdentity();
     }
+
 }
