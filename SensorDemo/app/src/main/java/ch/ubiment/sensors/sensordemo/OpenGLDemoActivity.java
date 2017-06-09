@@ -34,7 +34,7 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
     private SensorManager sensorManager;
     private SensorManager mSensorManager;
 
-    //definition of  vectors
+    //definition of all vectors
     private float[] gravityVector = new float[3];
     private float[] magneticVector = new float[3];
     private float[] rotateVector = new float[3];
