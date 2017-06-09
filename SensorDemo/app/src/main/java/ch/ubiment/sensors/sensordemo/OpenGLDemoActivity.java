@@ -33,18 +33,44 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
 
     private SensorManager sensorManager;
     private SensorManager mSensorManager;
-    private float[] GravityVector = new float[3];
-    private float[] MagneticVector = new float[3];
-    private float[] RotateVector = new float[3];
+
+    //definition of  vectors
+    private float[] gravityVector = new float[3];
+    private float[] magneticVector = new float[3];
+    private float[] rotateVector = new float[3];
+    private float[] accelVector = new float[3];
+
+    //Definition of calibrate boolean
+    private boolean calibrMAG = FALSE;
+    private boolean calibrGRAV = FALSE;
+    private boolean calibrACC = FALSE;
+    private boolean calibrROTV = FALSE;
+
+    //Definition of rotation Matrix
+    private float[] gravMagnMatrix = new float[16];   // compute with  Sensor magnetic and gravity field
+    private float [] rotateMatrixFromRotateVector = new float[16];    //compute with only sensor Rotation Vector
+    private float [] accelMagMatrix = new float[16];
+
+    //Definiton of Orientation Vectors
+    private float [] rotateOrientation = new float[3]; //compute with Sensor Rotation Vector
+    private float [] gravityOrientation = new float[3];
+    private float [] magneticOrientation = new float[3];
+    private float [] accelOrientation = new float[3];
+    private float [] accMagOrientation = new float[3];
+    private float [] gravMagnOrientation = new float[3];
+
+
+
+
     private String IP_Dest = "160.98.114.71"; //adresse Ip serveur ordianteur
     private int Port_Dest = 46000;         // Port d'écoute du serveur
     UdpClientSend sender = new UdpClientSend(IP_Dest, Port_Dest);
-    private boolean calibrMAG = FALSE;
-    private boolean calibrGRAV = FALSE;
+
     private SntpClient sntpClient;      // parameter for the SNTP protocol
     private boolean isSntpTimeSet = false;  //parameter to determine if the time is already SET
     private String TAG = "OpenGLDemoActivity";
-    private long ElapsedTime;
+    private float[] Q = new float[4]; //déclaration du quaternion
+
 
     OpenGLRenderer openGLRenderer = new OpenGLRenderer();
 
@@ -67,6 +93,8 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
         GLSurfaceView view = new GLSurfaceView(this);
         view.setRenderer(openGLRenderer);
         setContentView(view);
+        initMatrix();
+        initVector();
 
     }
 
@@ -78,7 +106,8 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
 
         mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SensorManager.SENSOR_DELAY_GAME);
         mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY), SensorManager.SENSOR_DELAY_GAME);
-
+        mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(mSensorListener, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_GAME);
 
 
     }
@@ -93,71 +122,81 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
         @Override
         public void onSensorChanged(SensorEvent event) {
 
-            float[] I = new float[16];
-            float[] Q = new float[4]; //déclaration du quaternion
-            float[] rotationMatrix = new float[16];
 
             if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
 
-                MagneticVector = (float[]) getMagneticVector(event).clone();
+                magneticVector = (float[]) getMagneticVector(event).clone();
                 calibrMAG = TRUE;
-                //SensorManager.getRotationMatrixFromVector(rotationMatrix, MagneticVector);--> Permet de calculer le vecteur de rotation à l'aide du vecteur champ magnetique
+                calculategravMagnOrientationAndMatrix();
+                calculateAccMagOrientationAndMatrix();
+                //getRotationMatrix(accelMagMatrix, null, accelVector, magneticVector);
                 Log.v(TAG, "Magnetic");
             } else if (event.sensor.getType() == Sensor.TYPE_GRAVITY) {
 
-                GravityVector = (float[]) getGravityVector(event).clone();
+                gravityVector = (float[]) getGravityVector(event).clone();
                 calibrGRAV = TRUE;
-                //SensorManager.getRotationMatrixFromVector(rotationMatrix, GravityVector);--> permet de calculer le vecteur de rotation à l'aide du vecteur de Gravité
+                //SensorManager.getRotationMatrixFromVector(gravMagnMatrix, GravityVector);--> permet de calculer le vecteur de rotation à l'aide du vecteur de Gravité
                 Log.v(TAG, "Gravity");
             }
-            /*
             else if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
-                RotateVector[0] = event.values[0];
-                RotateVector[1] = event.values[1];
-                RotateVector[2] = event.values[2];
+
+                rotateVector = (float []) getRotateVector(event).clone();
+                calibrROTV = TRUE;
+                calculateRotateOrientationAndMatrix();
+                //SensorManager.getRotationMatrixFromVector(rotateMatrixFromRotateVector, rotateVector);
                 Log.v(TAG, "rotation vector");
             }
-            */
+            else if(event.sensor.getType() ==  Sensor.TYPE_ACCELEROMETER){
+
+                accelVector = (float [])getAccLinearVec(event).clone();
+                calibrACC = TRUE;
+                Log.v(TAG, "linear acceleration vector");
+            }
 
             //Cette méthode permet de calculer le vecteur de rotation grâce à la fois au vecteur de champ magnétique et au vecteur gravité
+            if ((calibrGRAV && calibrMAG) || (calibrACC && calibrMAG)) {
+                if(!isSntpTimeSet) {
 
-            if (calibrGRAV && calibrMAG) {
+                    new Thread(new Runnable() {
+                        public void run() {
+                            if (sntpClient.requestTime("time2.ethz.ch",60000)) {
+                                isSntpTimeSet = true;
+                            } else {
+                                Log.i(TAG, "sntpTimeNotSetYet");
+                                return;
+                            }
+                        }
+                    }).start();
 
+                }
 
                 long ElapsedTime = sntpClient.getNtpTime() + SystemClock.elapsedRealtime() - sntpClient.getNtpTimeReference();
-
-
-                getRotationMatrix(rotationMatrix, I, GravityVector, MagneticVector);
+                //getRotationMatrix(gravMagnMatrix, null, gravityVector, magneticVector);
                 calibrMAG = FALSE;
                 calibrGRAV = FALSE;
+                calibrACC = FALSE;
 
                 //convertir la matrice de rotation en quaternion
-                getQuaternionFromVector(Q, rotationMatrix);
-
+                getQuaternionFromVector(Q, gravMagnMatrix);
                 String msg =
                         "{\"ElapsedTime\":\""+ ElapsedTime +
                         "\",\"Q0\":\"" + Q[0] +
                         "\",\"Q1\":\"" + Q[1] +
                         "\",\"Q2\":\"" + Q[2] +
                         "\",\"Q3\":\"" + Q[3] + "\"}";
-
-
                 try {
                     Log.v(TAG, "Break point try");
                     sender.send(msg);
                 } catch (Exception e) {
                     Log.v(TAG, "Break point catch");
                     e.printStackTrace();
-
                 }
 
-                openGLRenderer.setRotationMatrix(rotationMatrix);
-
+                openGLRenderer.setRotationMatrix(rotateMatrixFromRotateVector);
                 float[] orientation = new float[3];
-                SensorManager.getOrientation(rotationMatrix, orientation);
+                SensorManager.getOrientation(gravMagnMatrix, orientation);
 
                 // Permet de calculer les valeurs des angles d'orientation du vecteurs résultant associée à la matrice de rotation
-
                 double pitch = orientation[0];
                 double roll = orientation[1];
                 double azimuth = orientation[2];
@@ -165,12 +204,28 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
             }
         }
     };
-/*
-    // this method is use to calculate rotation Matrix from rotate vector
-    public void computeRotationMatrix(){
-        SensorManager.getRotationMatrixFromVector(rotationMatrixfromrotateVect, RotateVector);
+
+    //Compute acceleration and Magnetic field Orientation and rotation matrix
+    public void calculateAccMagOrientationAndMatrix() {
+        if(SensorManager.getRotationMatrix(accelMagMatrix, null, accelVector, magneticVector)) {
+            SensorManager.getOrientation(accelMagMatrix, accMagOrientation);
+        }
     }
-*/
+
+    //Compute Rotation orientation and rotation Matrix from rotate Vector
+    public void calculateRotateOrientationAndMatrix(){
+        SensorManager.getRotationMatrixFromVector(rotateMatrixFromRotateVector, rotateVector);
+        SensorManager.getOrientation(rotateMatrixFromRotateVector, rotateOrientation);
+    }
+
+    //Compute Gravity and Magnetic orientation and Matrix
+    public void calculategravMagnOrientationAndMatrix(){
+        SensorManager.getRotationMatrix(gravMagnMatrix, null, gravityVector, magneticVector);
+        SensorManager.getOrientation(gravMagnMatrix, gravityOrientation);
+    }
+
+
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
@@ -193,9 +248,45 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
         sender.close();
     }
 
+    //Methode qui renvoie le vecteur champ de rotation NON normalisé
+    public float[] getRotateVector(SensorEvent e) {
+        //get rotation vector from Magnetic Sensor
 
-    //Methode qui rencoie le vecteur champ magnetique//
+        //Get rotation vector from Gravity Sensor
+        float Vx = e.values[0];
+        float Vy = e.values[1];
+        float Vz = e.values[2];
+        float VStrenght = (float) Math.sqrt(
+                (Vx * Vx + Vy * Vy + Vz * Vz));
 
+        /*Normalisation du vecteur champ magnétique
+        rotateVector[0] = Vx / VStrenght;
+        rotateVector[1] = Vy / VStrenght;
+        rotateVector[2] = Vz / VStrenght;*/
+        rotateVector[0] = Vx ;
+        rotateVector[1] = Vy ;
+        rotateVector[2] = Vz ;
+        return rotateVector;
+    }
+
+    //Methode qui renvoie le vecteur champ Acceleration Lineaire Normalisé
+    public float [] getAccLinearVec(SensorEvent e) {
+
+        //Get rotation vector from Gravity Sensor
+        float Ax = e.values[0];
+        float Ay = e.values[1];
+        float Az = e.values[2];
+        float AStrenght = (float) Math.sqrt(
+                (Ax * Ax + Ay * Ay + Az * Az));
+
+        //Normalisation du vecteur Accélération lineaire Normalisé
+        accelVector[0] = Ax / AStrenght;
+        accelVector[1] = Ay / AStrenght;
+        accelVector[2] = Az / AStrenght;
+        return accelVector;
+    }
+
+    //Methode qui renvoie le vecteur champ magnetique Normalisé
     public float[] getMagneticVector(SensorEvent e) {
         //get rotation vector from Magnetic Sensor
 
@@ -214,12 +305,12 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
 
         // vecteur champ magnetique normalisé
 
-        float[] MagneticVector = {xMagnetic, yMagnetic, zMagnetic};
+        float[] magneticVector = {xMagnetic, yMagnetic, zMagnetic};
 
-        return MagneticVector;
+        return magneticVector;
     }
 
-    //Methode qui renvoie le vecteur Gravite
+    //Methode qui renvoie le vecteur Gravite Normalisé
 
     public float[] getGravityVector(SensorEvent e) {
 
@@ -240,11 +331,30 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
 
         // vecteur champ magnetique normalisé
 
-        float[] GravityVector = {xgravity, ygravity, zgravity};
+        float[] gravityVector = {xgravity, ygravity, zgravity};
 
-        return GravityVector;
+        return gravityVector;
 
     }
+
+    //this method is use to initialse matrix
+    public void initMatrix(){
+        for (int i = 0 ; i<16; i++){
+            gravMagnMatrix[i] = 0.0f;
+            rotateMatrixFromRotateVector[i] = 0.0f;
+            accelMagMatrix[i] = 0.0f;
+        }
+    }
+
+    public void initVector(){
+        for (int i = 0; i<3; i++){
+            gravityVector[i] =0;
+            magneticVector[i]  = 0;
+            rotateVector[i] = 0;
+            accelVector[i] = 0;
+        }
+    }
+
 }
 
 
