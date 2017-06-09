@@ -62,7 +62,7 @@ class OpenGLRenderer implements GLSurfaceView.Renderer {
         gl.glLoadIdentity();
         gl.glTranslatef(0.0f, 0.0f, -10.0f);
         gl.glMultMatrixf(rotationMatrix_Magn, 0);
-        //scene.getmCube_M().draw(gl);
+        scene.getmCube_M().draw(gl);
         scene.getmAxis().draw(gl);
 
         gl.glLoadIdentity();

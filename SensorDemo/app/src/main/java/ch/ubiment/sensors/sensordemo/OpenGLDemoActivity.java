@@ -160,6 +160,9 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
                 rotateVector = (float []) getRotateVector(event).clone();
                 calibrROTV = TRUE;
                 calculateRotateOrientationAndMatrix();
+
+                openGLRenderer.setRotationMatrix_Gyro(rotateMatrixFromRotateVector);
+
                 //SensorManager.getRotationMatrixFromVector(rotateMatrixFromRotateVector, rotateVector);
                 Log.v(TAG, "rotation vector");
             }
@@ -210,7 +213,7 @@ public class OpenGLDemoActivity extends Activity implements SensorEventListener 
                 }
 
 
-                openGLRenderer.setRotationMatrix_Magn(rotateMatrixFromRotateVector);
+                openGLRenderer.setRotationMatrix_Magn(gravMagnMatrix);
 
 
                 float[] orientation = new float[3];
