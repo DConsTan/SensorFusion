@@ -21,8 +21,9 @@ import java.util.List;
  */
 
 public class List_Activity extends Activity {
-    SensorManager sensorManager;
-    String TAG = "List_Activity";
+    private SensorManager sensorManager;
+    private String TAG = "List_Activity";
+    private List<Sensor> sensors;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -30,9 +31,9 @@ public class List_Activity extends Activity {
         listSensor();
     }
 
-    private void listSensor() {
+    public void listSensor() {
         // Trouver tous les capteurs de l'appareil :
-        List<Sensor> sensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
+         sensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
         // La chaîne descriptive de chaque capteur
         StringBuffer sensorDesc = new StringBuffer();
         // pour chaque capteur trouvé, construire sa chaîne descriptive
@@ -48,7 +49,7 @@ public class List_Activity extends Activity {
             sensorDesc.append("Maximum range of the sensor in the sensor's unit." + sensor.getMaximumRange() + "\r\n");
             sensorDesc.append("Minimum delay allowed between two events in microsecond" + " or zero if this sensor only returns a value when the data it's measuring changes" + sensor.getMinDelay() + "\r\n");
         }
-
+        Log.v(TAG, sensorDesc.toString());
         // Faire quelque chose de cette liste: permet de maintenir les informations affichées à l'ecran
         //On peu enlever la boucle for dans ce cas les texte s'effacera après une durée de 5sec
         for(int i=0;i<1000;i++) {
@@ -89,9 +90,6 @@ public class List_Activity extends Activity {
                 break;
             case Sensor.TYPE_ROTATION_VECTOR:
                 strType = "TYPE_ROTATION_VECTOR";
-                break;
-            case Sensor.TYPE_TEMPERATURE:
-                strType = "TYPE_TEMPERATURE";
                 break;
             default:
                 strType = "TYPE_UNKNOW";

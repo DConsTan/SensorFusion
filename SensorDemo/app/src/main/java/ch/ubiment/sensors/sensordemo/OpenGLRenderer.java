@@ -33,9 +33,9 @@ class OpenGLRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 
-        gl.glClearColor(0.2f, 0.2f, 0.2f, 0.5f);
+        gl.glClearColor(0.2f, 0.2f, 0.2f, 0.5f); //color RVB ALPHA
 
-        gl.glClearDepthf(1.0f);
+        gl.glClearDepthf(1.0f); //profondeur
         gl.glEnable(GL10.GL_DEPTH_TEST);
         gl.glDepthFunc(GL10.GL_LEQUAL);
 
