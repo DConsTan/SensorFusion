@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Pedometer_apps</string>
+    <string name="number_of_step_since_reboot">NUMBER OF STEP SINCE REBOOT</string>
+</resources>
