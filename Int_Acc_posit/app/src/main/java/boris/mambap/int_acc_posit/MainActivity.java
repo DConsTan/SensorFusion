@@ -20,8 +20,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private SensorManager sensorManager;
     private Sensor accSensor;
-    private Sensor gravSensor;
-    private Sensor magSensor;
     private Sensor rotationSensor;
     private TextView Text_px;
     private TextView Text_py;
@@ -32,8 +30,6 @@ public class MainActivity extends Activity implements SensorEventListener {
     private float[] velocity = new float[3];
     private float[] position = new float[3];
     private float[] last_values = new float[3];
-    private float[] gravityValues = null;
-    private float[] magneticValues = null;
     private float[] rotation_vector_values = null;
     private float[] earthAcc;
     private float[] Rm;
@@ -49,8 +45,9 @@ public class MainActivity extends Activity implements SensorEventListener {
     private float offset = 0;
     private boolean firstEntry =FALSE;
     private boolean ifStop = FALSE;
-    private boolean ifStart = TRUE;
+    private boolean ifStart = FALSE;
     private float timeTamp = 0;
+    static final float ALPHA = 0.8f; //the smoothing factor
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,12 +75,13 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     public void  tostart(View view){
 
-        this.onPause();
+
+        ifStart = TRUE;
+        firstEntry = FALSE;
 
         if(ifStop){
             this.onResume();
             ifStop = FALSE;
-            ifStart = TRUE;
             last_timestamp = timeTamp;
 
         }
@@ -101,15 +99,14 @@ public class MainActivity extends Activity implements SensorEventListener {
             Text_px.setText(initial);
             Text_py.setText(initial);
             Text_pz.setText(initial);
-            firstEntry = TRUE;
-            ifStart = FALSE;
+
 
         }
 
     }
     public void tostop(View view){
-        //String initial = String.valueOf(0);
         this.onPause();
+        ifStop = TRUE;
         Text_px.setText(String.valueOf(position[0]));
         Text_py.setText(String.valueOf(position[1]));
         Text_pz.setText(String.valueOf(position[2]));
@@ -118,16 +115,10 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     public void onSensorChanged(SensorEvent event) {
 
-
-
-        if((firstEntry)) {
+        if((firstEntry && ifStart)) {
 
 
             firstEntry = TRUE;
-
-
-
-
             if ((rotation_vector_values != null) && (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION)){
 
                 Log.v("test1","ppppppppppppppppppppppppppppppppppppppppppppppppppppppp");
@@ -136,6 +127,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                 deviceRelativeAcceleration[1] = event.values[1];
                 deviceRelativeAcceleration[2] = event.values[2];
                 deviceRelativeAcceleration[3] = 0;
+                float[] tampEartAcc = new float[4];
+                float[] tampEartAccLPF = new float[4];
                  Rm = new float[16]; I = new float[16]; earthAcc = new float[16];
                 float[] inv = new float[16];
                 //SensorManager.getRotationMatrix(Rm, I, gravityValues, magneticValues);
@@ -143,6 +136,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                 android.opengl.Matrix.transposeM(inv, 0, Rm, 0);
                 android.opengl.Matrix.multiplyMV(earthAcc, 0, inv, 0, deviceRelativeAcceleration, 0);
                 Log.d("Acceleration", "Values: (" + earthAcc[0] + ", " + earthAcc[1] + ", " + earthAcc[2] + ")");
+                tampEartAcc[0] = earthAcc[0];
+                tampEartAcc[1] = earthAcc[1];
+                tampEartAcc[2] = earthAcc[2];
 
                 float dt = (event.timestamp - last_timestamp) * NS2S;
                 timeTamp = event.timestamp;
@@ -161,10 +157,12 @@ public class MainActivity extends Activity implements SensorEventListener {
 
                 }
 
+                tampEartAccLPF = lowPass( tampEartAcc, tampEartAccLPF);
+
                 for (int index = 0; index < 3; ++index) {
 
 
-                    acceleration[index] = earthAcc[index] ;
+                    acceleration[index] = tampEartAccLPF[index] ;
 
 
 
@@ -205,7 +203,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
 
             } else if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-
+                Log.v("test1","rtrtrtrtrtrtrtrtrtrtrtrtrtrtrtrttrtrtrtrtrtrtrtrtrtrtrtrtrtrtrtrtrtrtr");
                 rotation_vector_values = (float[])event.values.clone();
 
             }
@@ -215,6 +213,8 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
         else{
             last_timestamp  = event.timestamp;
+            firstEntry = TRUE;
+
         }
     }
 
@@ -228,33 +228,30 @@ public class MainActivity extends Activity implements SensorEventListener {
     protected void onResume() {
         super.onResume();
         accSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        //gravSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        //magSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-
         sensorManager.registerListener(this, accSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        //sensorManager.registerListener(this, gravSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        //sensorManager.registerListener(this, magSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        //sensorManager.registerListener(this, magSensor, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_NORMAL);
-
         sender = new UdpClientSend(IP_Dest, Port_Dest);
     }
 
     public void onPause() {
-        ifStop = TRUE;
+
         super.onPause();
+
         sensorManager.unregisterListener(this);
-        //last_timestamp = 0;
         sender.close();
 
     }
-
-
-
-
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    protected float[] lowPass( float[] input, float[] output ){
+        if ( output == null ) return input;
+        for ( int i=0; i<input.length; i++ ) {
+            output[i] = output[i] + ALPHA * (input[i] - output[i]);
+        }
+        return output;
     }
 }
