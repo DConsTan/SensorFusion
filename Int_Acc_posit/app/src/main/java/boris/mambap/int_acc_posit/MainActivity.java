@@ -48,6 +48,8 @@ public class MainActivity extends Activity implements SensorEventListener {
     private boolean ifStart = FALSE;
     private float timeTamp = 0;
     static final float ALPHA = 0.8f; //the smoothing factor
+    private float[] tampEartAcc = new float[4];
+    private float[] tampEartAccLPF = new float[4];
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -127,8 +129,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                 deviceRelativeAcceleration[1] = event.values[1];
                 deviceRelativeAcceleration[2] = event.values[2];
                 deviceRelativeAcceleration[3] = 0;
-                float[] tampEartAcc = new float[4];
-                float[] tampEartAccLPF = new float[4];
+
+
                  Rm = new float[16]; I = new float[16]; earthAcc = new float[16];
                 float[] inv = new float[16];
                 //SensorManager.getRotationMatrix(Rm, I, gravityValues, magneticValues);
@@ -160,16 +162,11 @@ public class MainActivity extends Activity implements SensorEventListener {
                 tampEartAccLPF = lowPass( tampEartAcc, tampEartAccLPF);
 
                 for (int index = 0; index < 3; ++index) {
-
-
+                    ///intégration par la méthode des trapezes
                     acceleration[index] = tampEartAccLPF[index] ;
-
-
-
                     float last_velocity = velocity[index];
                     velocity[index] += ((acceleration[index] + last_values[index]) / 2) * dt;
                     position[index] += ((velocity[index] + last_velocity) / 2) * dt;
-
                     last_values[index] = acceleration[index];
                 }
 
